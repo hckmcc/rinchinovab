@@ -58,8 +58,149 @@
                     <span>8 902 161-93-81</span>
                 </a>
             </div>
+
+            <div class="mt-8 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-8 md:p-10 text-slate-800">
+                <h2 class="font-semibold text-xl text-slate-900 mb-6" style="font-family: 'Literata', serif;">Каталог услуг</h2>
+                <ul class="space-y-4">
+                    @foreach([
+                        'Бронирование гостиничного номера',
+                        'Бронирование оборудования для туризма',
+                        'Бронирование оборудования для клининга',
+                        'Бронирование оборудования для строительства',
+                    ] as $service)
+                        <li class="flex flex-wrap items-center justify-between gap-3 py-3 border-b border-slate-200 last:border-0">
+                            <span class="text-slate-700">{{ $service }}</span>
+                            <button type="button" class="booking-btn px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors" data-service="{{ $service }}">
+                                Забронировать
+                            </button>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+
             <p class="text-center text-white/80 text-sm mt-6 drop-shadow">Баргузинский хребет</p>
         </main>
     </div>
+
+    {{-- Модальное окно --}}
+    <div id="booking-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-modal-close></div>
+        <div class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md max-h-[90vh] overflow-y-auto z-10 p-4">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-slate-900" style="font-family: 'Literata', serif;">Заявка на бронирование</h3>
+                    <button type="button" class="modal-close p-2 -m-2 text-slate-400 hover:text-slate-600 rounded-lg transition-colors" aria-label="Закрыть">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <p id="modal-service-name" class="text-slate-600 text-sm mb-6"></p>
+
+                <div id="booking-form-wrap">
+                    <form id="booking-form" class="space-y-4">
+                        @csrf
+                        <input type="hidden" name="service" id="booking-service" value="">
+                        <div>
+                            <label for="booking-name" class="block text-sm font-medium text-slate-700 mb-1">Имя <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" id="booking-name" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-slate-500 focus:ring-1 focus:ring-slate-500" placeholder="Ваше имя">
+                            <p class="form-error text-red-500 text-sm mt-1 hidden" data-for="name"></p>
+                        </div>
+                        <div>
+                            <label for="booking-phone" class="block text-sm font-medium text-slate-700 mb-1">Телефон <span class="text-red-500">*</span></label>
+                            <input type="tel" name="phone" id="booking-phone" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-slate-500 focus:ring-1 focus:ring-slate-500" placeholder="+7 (999) 123-45-67">
+                            <p class="form-error text-red-500 text-sm mt-1 hidden" data-for="phone"></p>
+                        </div>
+                        <div>
+                            <label for="booking-email" class="block text-sm font-medium text-slate-700 mb-1">Почта <span class="text-red-500">*</span></label>
+                            <input type="email" name="email" id="booking-email" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-slate-500 focus:ring-1 focus:ring-slate-500" placeholder="example@mail.ru">
+                            <p class="form-error text-red-500 text-sm mt-1 hidden" data-for="email"></p>
+                        </div>
+                        <button type="submit" id="booking-submit" class="w-full mt-4 px-4 py-3 rounded-lg bg-slate-800 text-white font-medium hover:bg-slate-700 transition-colors">
+                            Отправить заявку
+                        </button>
+                    </form>
+                </div>
+
+                <div id="booking-success" class="hidden text-center py-4">
+                    <p class="text-slate-700 text-lg">Ваша заявка успешно отправлена! Администратор свяжется с Вами в ближайшее время.</p>
+                    <button type="button" class="modal-close mt-4 px-4 py-2 rounded-lg bg-slate-800 text-white font-medium hover:bg-slate-700 transition-colors">
+                        Закрыть
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            var modal = document.getElementById('booking-modal');
+            var form = document.getElementById('booking-form');
+            var formWrap = document.getElementById('booking-form-wrap');
+            var successBlock = document.getElementById('booking-success');
+            var serviceNameEl = document.getElementById('modal-service-name');
+            var serviceInput = document.getElementById('booking-service');
+            var submitBtn = document.getElementById('booking-submit');
+            var bookingUrl = '{{ route("booking.store") }}';
+
+            function openModal(service) {
+                serviceInput.value = service;
+                serviceNameEl.textContent = service;
+                formWrap.classList.remove('hidden');
+                successBlock.classList.add('hidden');
+                form.reset();
+                document.querySelectorAll('.form-error').forEach(function(el) { el.classList.add('hidden'); el.textContent = ''; });
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                document.getElementById('booking-name').focus();
+            }
+
+            function closeModal() {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+
+            document.querySelectorAll('.booking-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() { openModal(this.getAttribute('data-service')); });
+            });
+            document.querySelectorAll('.modal-close').forEach(function(btn) {
+                btn.addEventListener('click', closeModal);
+            });
+            modal.querySelector('[data-modal-close]').addEventListener('click', closeModal);
+            modal.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeModal();
+            });
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitBtn.disabled = true;
+                document.querySelectorAll('.form-error').forEach(function(el) { el.classList.add('hidden'); el.textContent = ''; });
+
+                var fd = new FormData(form);
+                fetch(bookingUrl, {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                })
+                .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+                .then(function(result) {
+                    if (result.ok) {
+                        formWrap.classList.add('hidden');
+                        successBlock.classList.remove('hidden');
+                    } else {
+                        var d = result.data.errors || {};
+                        Object.keys(d).forEach(function(k) {
+                            var el = document.querySelector('.form-error[data-for="' + k + '"]');
+                            if (el) { el.textContent = d[k][0]; el.classList.remove('hidden'); }
+                        });
+                    }
+                })
+                .catch(function() {
+                    alert('Произошла ошибка. Попробуйте позже.');
+                })
+                .finally(function() {
+                    submitBtn.disabled = false;
+                });
+            });
+        })();
+    </script>
 </body>
 </html>
