@@ -11,4 +11,3 @@ RUN apt update -q && \
     npm install -g npm@latest
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
